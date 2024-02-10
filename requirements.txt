@@ -1,0 +1,3 @@
+winpaths
+pyqt5
+libusb1

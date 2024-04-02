@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>502</width>
-    <height>561</height>
+    <height>610</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>502</width>
-    <height>561</height>
+    <height>1000</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -117,7 +117,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>490</y>
+      <y>540</y>
       <width>121</width>
       <height>23</height>
      </rect>
@@ -130,7 +130,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>490</y>
+      <y>540</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -233,7 +233,7 @@
      <string>Singular Effects</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>70</x>
@@ -295,7 +295,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>70</x>
@@ -400,7 +400,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>70</x>
@@ -472,7 +472,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>70</x>
@@ -507,7 +507,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>40</x>
@@ -566,7 +566,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>70</x>
@@ -626,6 +626,61 @@
      </item>
     </layout>
    </widget>
+   <widget class="QCheckBox" name="cb_Spring">
+    <property name="geometry">
+     <rect>
+      <x>41</x>
+      <y>467</y>
+      <width>58</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Spring</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget_4">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>490</y>
+      <width>235</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_14">
+     <item>
+      <widget class="QLabel" name="label_13">
+       <property name="minimumSize">
+        <size>
+         <width>101</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Intensity (0.0-1.0):</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="txt_SpringIntensity">
+       <property name="maximumSize">
+        <size>
+         <width>50</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="cb_SpringOverride">
+       <property name="text">
+        <string>Override</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -642,7 +697,6 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="bg_EffectType"/>
   <buttongroup name="bg_PeriodicType"/>
  </buttongroups>
 </ui>

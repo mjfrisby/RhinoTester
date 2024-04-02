@@ -62,6 +62,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.txt_FrictionIntensity.setValidator(float_validator)
         self.txt_FrictionIntensity.textChanged.connect(self.check_float)
 
+        self.txt_SpringIntensity.setValidator(float_validator)
+        self.txt_SpringIntensity.textChanged.connect(self.check_float)
+
         self.button_Connect.clicked.connect(self.connect_rhino)
         self.button_Start.clicked.connect(self.start_effects)
         self.button_Stop.clicked.connect(self.stop_effects)
@@ -81,6 +84,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.txt_DamperIntensity.setText("0.5")
         self.txt_InertiaIntensity.setText("0.85")
         self.txt_FrictionIntensity.setText("0.5")
+        self.txt_SpringIntensity.setText("0.5")
 
     def cleanup(self):
         # effects.foreach(lambda e: e.destroy())
@@ -133,7 +137,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         try:
             print("Connecting to Rhino")
             dev = HapticEffect.open(vid_pid[0], vid_pid[1])  # try to open RHINO
-            dev.resetEffects()
+            # dev.resetEffects()
             self.label_Connected.setText("CONNECTED")
             self.label_Connected.setStyleSheet("color: green;")
             self.connected = True
@@ -196,7 +200,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 return
             d_intensity = float(d_intensity)
             d_coeff = int(d_intensity * 4096)
-            effects["damper"].damper(d_coeff, d_coeff).start()
+            self.effect_index += 1
+            effects[f"damper_{self.effect_index}"].damper(d_coeff, d_coeff).start()
 
         i_enabled = self.cb_Inertia.isChecked()
         if i_enabled:
@@ -217,6 +222,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             f_intensity = float(f_intensity)
             f_coeff = int(f_intensity*4096)
             effects["friction"].friction(f_coeff, f_coeff).start()
+
+        s_enabled = self.cb_Spring.isChecked()
+        if s_enabled:
+            s_intensity = self.txt_SpringIntensity.text()
+            s_ovd = self.cb_SpringOverride.isChecked()
+            if s_intensity == '' or not self.validate_float(self.txt_SpringIntensity):
+                QMessageBox.warning(self, "Spring Force Settings Error", "Please enter a valid value for the spring force intensity")
+                return
+            s_intensity = float(s_intensity)
+            s_coeff = int(s_intensity*4096)
+            effects['spring'].spring(s_coeff, s_coeff).start(override=s_ovd)
 
 
 

@@ -18,3 +18,7 @@ Damper, Inertia, Friction and Spring are singular effects, meaning that only one
 You may start a single effect type, or multiple types with a single click of "Start New Effects".
 
 The axis position indicator also has a blue crosshair.  If you start a spring effect, you are able to drag the crosshair around the axis map with your mouse. Doing so will adjust the centerpoint offset of the spring effect in real time, which will result in the device mirroring the movement of the crosshairs.
+
+Use with care, especially the axis center point offset dragging.  The joystick/device ***will*** do what you tell it to and will attempt to do so just as quickly as you drag the axis.  Abusing this feature may result in unintentional W-F or damage to the device.
+
+Use at your own discretion.

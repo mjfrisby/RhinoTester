@@ -4,11 +4,12 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QWidget, QRadioButton, QButtonGroup, QMessageBox
+from widgets import CrosshairWidget
 
 from interface import Ui_MainWindow
 import utils
 from typing import List, Dict
-from ffb_rhino import HapticEffect
+from ffb_rhino import HapticEffect, FFBReport_SetCondition
 global dev
 
 EFFECT_SQUARE = 3
@@ -18,7 +19,25 @@ EFFECT_SAWTOOTHUP = 6
 EFFECT_SAWTOOTHDOWN = 7
 
 effects: Dict[str, HapticEffect] = utils.Dispenser(HapticEffect)
+
+class DeviceMonitorThread(QThread):
+    positionChanged = pyqtSignal(float, float)
+
+    def run(self):
+        while True:
+            if dev is not None:
+                input_data = dev.getInput()
+                if input_data is not None:
+                    x, y = input_data.axisXY()
+                    self.positionChanged.emit(x, y)
+            self.msleep(10)  # Adjust the interval as needed
+
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+    _device_x = 0
+    _device_y = 0
+    cpOx = 0
+    cpOy = 0
+    dev = None
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -26,6 +45,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.connected = False
         self.effect_index = 0
+
+        # Create the device monitor thread
+        self.device_thread = DeviceMonitorThread()
+        self.device_thread.positionChanged.connect(self.update_reference_position)
+        self.spring_x = FFBReport_SetCondition(parameterBlockOffset=0)
+        self.spring_y = FFBReport_SetCondition(parameterBlockOffset=1)
+        self.spring = None
+
+
 
         # self.effects = {}
 
@@ -46,6 +74,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.text_PID.setValidator(int_validator)
         self.txt_PeriodicFrequency.setValidator(int_validator)
         self.txt_PeriodicFrequency.setValidator(int_validator)
+        self.txt_Duration.setValidator(int_validator)
+        self.txt_Duration.setText("0")
 
         self.txt_PeriodicIntensity.setValidator(float_validator)
         self.txt_PeriodicIntensity.textChanged.connect(self.check_float)
@@ -86,12 +116,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.txt_FrictionIntensity.setText("0.5")
         self.txt_SpringIntensity.setText("0.5")
 
+        # Find the frame where the crosshair widget will be placed
+        self.placeholder_frame = self.findChild(QWidget, 'crosshair_frame')
+
+        # Create the crosshair widget
+        self.crosshair_widget = CrosshairWidget()
+
+        # Replace the frame with the crosshair widget
+        layout = QVBoxLayout(self.placeholder_frame)
+        layout.addWidget(self.crosshair_widget)
+        self.placeholder_frame.setLayout(layout)
+        # self.crosshair_widget.ref_x_pos = 0
+        # self.crosshair_widget.ref_y_pos = 0
+
+        self.crosshair_widget.setReferencePosition(0,0)
+
+        self.crosshair_widget.setDisabled(True)
+
+    def update_reference_position(self, x, y):
+        # if not self.crosshair_widget.isEnabled():
+        #     return
+        self.crosshair_widget.setReferencePosition(x, y)
+
     def cleanup(self):
         # effects.foreach(lambda e: e.destroy())
-        dev.resetEffects()
+        self.device_thread.terminate()
+        try:
+            dev.resetEffects()
+        except:
+            pass
 
     def update_phase_value(self, value):
         self.lab_PeriodicPhase.setText(f"{value}")
+
     def check_float(self, text):
         sender = self.sender()
         validator = sender.validator()
@@ -148,21 +205,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.label_Connected.setStyleSheet("color: red;")
             QMessageBox.warning(None, "Cannot connect to Rhino", f"Unable to open device: {vid_pid}\nError: {e}\n\nPlease open the System Settings and verify the Master\ndevice PID is configured correctly")
 
+        # Start the device monitor thread
+        self.device_thread.start()
+
+
+    def handle_crosshair_movement(self, x, y):
+        # Handle the updated position of the moveable crosshairs
+        if not self.crosshair_widget.isEnabled(): return
+        print(f"New crosshair position: ({x}, {y})")
+        self.cpOx = int(x * 4096)
+        self.cpOy = int(y * 4096)
+        self.spring_x.cpOffset = self.cpOx
+        self.spring_y.cpOffset = self.cpOy
+        self.spring.effect.setCondition(self.spring_x)
+        self.spring.effect.setCondition(self.spring_y)
+
     def stop_effects(self):
         effects.foreach(lambda e: e.destroy())
         self.effect_index = 0
+        self.crosshair_widget.setDisabled(True)
+
 
     def start_effects(self):
         if not self.connected:
             QMessageBox.warning(self, "Error", "Please connect to a Rhino Device")
             return
-
+        input_data = dev.getInput()
+        x, y = input_data.axisXY()
+        self.crosshair_widget.setReferencePosition(x, y)
         p_enabled = self.cb_Periodic.isChecked()
         if p_enabled:
             p_dir = self.dialPeriodic.value()
             p_freq = self.txt_PeriodicFrequency.text()
             p_phase = self.slider_PeriodicPhase.value()
             p_type = self.bg_PeriodicType.checkedId()
+            p_duration = self.txt_Duration.text()
 
             if p_freq == '':
                 QMessageBox.warning(self, "Periodic Settings Error", "Please enter a valid value for the periodic frequency")
@@ -177,8 +254,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             p_phase = int(p_phase)
             p_type = int(p_type)
             p_intensity = float(p_intensity)
+            p_duration = int(p_duration)
 
-            effects[f'periodic_{self.effect_index}'].periodic(p_freq, p_intensity, p_dir, p_type, phase=p_phase).start()
+            effects[f'periodic_{self.effect_index}'].periodic(p_freq, p_intensity, p_dir, p_type, phase=p_phase, duration=p_duration).start()
 
         c_enabled = self.cb_Constant.isChecked()
         if c_enabled:
@@ -232,7 +310,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 return
             s_intensity = float(s_intensity)
             s_coeff = int(s_intensity*4096)
-            effects['spring'].spring(s_coeff, s_coeff).start(override=s_ovd)
+            self.spring = effects["spring"].spring()
+            # effects['spring'].spring(s_coeff, s_coeff).start(override=s_ovd)
+            self.spring_x.positiveCoefficient = self.spring_x.negativeCoefficient = s_coeff
+            self.spring_y.positiveCoefficient = self.spring_y.negativeCoefficient = s_coeff
+            self.spring.effect.setCondition(self.spring_x)
+            self.spring.effect.setCondition(self.spring_y)
+            self.spring.start(override=s_ovd)
+            self.crosshair_widget.crosshairPositionChanged.connect(self.handle_crosshair_movement)
+            self.crosshair_widget.setEnabled(True)
 
 
 

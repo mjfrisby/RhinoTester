@@ -1,7 +1,7 @@
 import sys
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-from PyQt5.QtGui import QPainter, QPen, QColor
-from PyQt5.QtWidgets import QWidget, QApplication
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
+from PyQt6.QtGui import QPainter, QPen, QColor
+from PyQt6.QtWidgets import QWidget, QApplication
 
 
 class CrosshairWidget(QWidget):
@@ -23,7 +23,7 @@ class CrosshairWidget(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Draw the static grid
         grid_color = QColor(211, 211, 211)  # Light grey
@@ -69,11 +69,11 @@ class CrosshairWidget(QWidget):
         painter.drawEllipse(self.center, 3, 3)  # Radius of the dot
 
     def mousePressEvent(self, event):
-        if self.movable and event.button() == Qt.LeftButton:
+        if self.movable and event.button() == Qt.MouseButton.LeftButton:
             self.update_center(event.pos())
 
     def mouseMoveEvent(self, event):
-        if self.movable and event.buttons() & Qt.LeftButton:
+        if self.movable and event.buttons() & Qt.MouseButton.LeftButton:
             self.update_center(event.pos())
 
 

@@ -1,1 +1,1 @@
-pyuic5 interface.ui -o interface.py
+pyuic6 interface.ui -o interface.py

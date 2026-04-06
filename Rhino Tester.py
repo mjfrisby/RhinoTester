@@ -1,15 +1,17 @@
+import logging
 import sys
 
-from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSignal, QThread
-from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QWidget, QRadioButton, QButtonGroup, QMessageBox
+from PyQt6 import QtWidgets, QtGui
+from PyQt6.QtCore import pyqtSignal, QThread
+from PyQt6.QtGui import QIntValidator, QDoubleValidator
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget, QMessageBox
 from widgets import CrosshairWidget
 
 from interface import Ui_MainWindow
-import utils
-from typing import List, Dict
-from ffb_rhino import HapticEffect, FFBReport_SetCondition
+from telemffb import utils
+from typing import Dict, List
+from telemffb.hw.ffb_rhino import HapticEffect, FFBReport_SetCondition, FFBRhino, DeviceInfo
+
 global dev
 
 EFFECT_SQUARE = 3
@@ -20,13 +22,31 @@ EFFECT_SAWTOOTHDOWN = 7
 
 effects: Dict[str, HapticEffect] = utils.Dispenser(HapticEffect)
 
+
+def _enumerate_and_log_devices() -> List[DeviceInfo]:
+    """Enumerate and log available Rhino devices."""
+    devs = FFBRhino.enumerate()
+    logging.info("Available Rhino Devices:")
+    logging.info("-------")
+    for devinfo in devs:
+        devinfo: DeviceInfo
+        logging.info(
+            f"* {devinfo.vendor_id:04X}:{devinfo.product_id:04X} - {devinfo.product_string} - {devinfo.serial_number}")
+        logging.info(f"* Path:{devinfo.path}")
+        logging.info(f"*")
+        # if G.master_instance:
+        #     G.instance_dev_dict[devinfo.product_id] = devinfo
+
+    logging.info("-------")
+    return devs
+
 class DeviceMonitorThread(QThread):
     positionChanged = pyqtSignal(float, float)
 
     def run(self):
         while True:
             if dev is not None:
-                input_data = dev.getInput()
+                input_data = dev.get_input()
                 if input_data is not None:
                     x, y = input_data.axisXY()
                     self.positionChanged.emit(x, y)
@@ -57,12 +77,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # self.effects = {}
 
+
+
     def init_ui(self):
         self.label_Connected.setStyleSheet("color: red;")
 
         int_validator = QIntValidator()
         float_validator = QDoubleValidator(0.0,1.0, 3)
-        float_validator.setNotation(QDoubleValidator.StandardNotation)
+        float_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
         self.bg_PeriodicType.setId(self.rb_Square, EFFECT_SQUARE)
         self.bg_PeriodicType.setId(self.rb_Sine, EFFECT_SINE)
         self.bg_PeriodicType.setId(self.rb_Triangle, EFFECT_TRIANGLE)
@@ -71,7 +93,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.rb_Sine.setChecked(True)
 
 
-        self.text_PID.setValidator(int_validator)
         self.txt_PeriodicFrequency.setValidator(int_validator)
         self.txt_PeriodicFrequency.setValidator(int_validator)
         self.txt_Duration.setValidator(int_validator)
@@ -99,11 +120,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.button_Start.clicked.connect(self.start_effects)
         self.button_Stop.clicked.connect(self.stop_effects)
 
+        # Populate the device combobox
+        devs = _enumerate_and_log_devices()
+        for devinfo in devs:
+            label = f"{devinfo.product_id:04X} - {devinfo.product_string}"
+            self.cb_PID.addItem(label, userData=f"{devinfo.product_id:04X}")
+
 
 
         self.dialConstant.setValue(0)
         self.dialPeriodic.setValue(0)
-        self.text_PID.setText("2055")
         self.txt_PeriodicFrequency.setText("10")
         self.txt_PeriodicIntensity.setText("0.15")
         self.slider_PeriodicPhase.setValue(0)
@@ -153,10 +179,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         sender = self.sender()
         validator = sender.validator()
         state = validator.validate(text, 0)[0]
-        if state == QtGui.QValidator.Acceptable:
+        if state == QtGui.QValidator.State.Acceptable:
             color = 'white'
             sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
-        elif state == QtGui.QValidator.Intermediate:
+        elif state == QtGui.QValidator.State.Intermediate:
             color = '#fff79a'  # yellow
             sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
         else:
@@ -167,7 +193,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         sender = widg
         validator = sender.validator()
         state = validator.validate(sender.text(), 0)[0]
-        if state != QtGui.QValidator.Acceptable:
+        if state != QtGui.QValidator.State.Acceptable:
             return False
         else:
             return True
@@ -187,10 +213,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def connect_rhino(self):
         global dev
-        pid = self.text_PID.text()
-        vid_pid = f"FFFF:{pid}"
-        print(vid_pid)
-        vid_pid = [int(x, 16) for x in vid_pid.split(":")]
+        pid_hex = self.cb_PID.currentData()
+        if not pid_hex:
+            QMessageBox.warning(self, "No Device Selected", "No Rhino device selected. Please select a device from the list.")
+            return
+        vid_pid = [0xFFFF, int(pid_hex, 16)]
         try:
             print("Connecting to Rhino")
             dev = HapticEffect.open(vid_pid[0], vid_pid[1])  # try to open RHINO
@@ -230,7 +257,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.connected:
             QMessageBox.warning(self, "Error", "Please connect to a Rhino Device")
             return
-        input_data = dev.getInput()
+        input_data = dev.get_input()
         x, y = input_data.axisXY()
         self.crosshair_widget.setReferencePosition(x, y)
         p_enabled = self.cb_Periodic.isChecked()
@@ -328,4 +355,4 @@ if __name__ == '__main__':
     main_window = MainWindow()
     main_window.show()
     app.aboutToQuit.connect(main_window.cleanup)
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

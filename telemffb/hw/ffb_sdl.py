@@ -1,3 +1,22 @@
+#
+# This file is part of the TelemFFB distribution (https://github.com/walmis/TelemFFB).
+# Copyright (c) 2023 Valmantas Palikša.
+# Copyright (c) 2023 Micah Frisby
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
+
 # 
 # This file is part of the TelemFFB distribution (https://github.com/walmis/TelemFFB).
 # Copyright (c) 2023 Valmantas Palikša.
@@ -15,6 +34,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+# this backend is not used, kept for posterity
+
 import sdl2
 from sdl2 import *
 import sdl2.ext
@@ -22,12 +43,12 @@ import time
 import random
 import time 
 from time import monotonic
-import utils
+import telemffb.utils as utils
 
 import logging
 import sys
 
-from utils import LowPassFilter, RandomDirectionModulator
+from telemffb.utils import LowPassFilter, RandomDirectionModulator
 
 #SDL_Init(SDL_INIT_JOYSTICK)
 SDL_Init(SDL_INIT_HAPTIC)

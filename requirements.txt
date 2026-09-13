@@ -1,3 +1,2 @@
-winpaths
 pyqt6==6.9.1
 libusb1

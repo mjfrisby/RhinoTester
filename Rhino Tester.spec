@@ -1,121 +1,125 @@
 # -*- mode: python ; coding: utf-8 -*-
+# One-file build: Rhino Tester.exe carries everything it needs, including the
+# Visual C++ runtime.  DirectLink is deliberately not bundled; the tester loads
+# it from the location its installer records in the registry.
+#
+# Build with:  python -m PyInstaller "Rhino Tester.spec"
+# Running PyInstaller on "Rhino Tester.py" instead overwrites this file with a
+# generic one-folder spec.
 
+import os
 
-block_cipher = None
+import PyQt6
 
+QT_BIN = os.path.join(os.path.dirname(PyQt6.__file__), 'Qt6', 'bin')
 
 a = Analysis(
     ['Rhino Tester.py'],
     pathex=[],
-    binaries=[('dll/hidapi.dll', 'dll')],
-    datas=[],
+    # Both at the bundle root, which is on the DLL search path; a subfolder is not.
+    # ffb_rhino loads hidapi.dll by name.  Qt's MSVCP140 delay-loads concrt140,
+    # which PyQt6's hook leaves out, so without it the exe would depend on the
+    # Visual C++ runtime being installed.
+    binaries=[('dll/hidapi.dll', '.'),
+              (os.path.join(QT_BIN, 'concrt140.dll'), '.')],
+    # The window icon; the exe's own icon is set on EXE below
+    datas=[('image/vpforceicon.png', 'image')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['PyQt5.QtQuick', 'PyQt5.QtQuickWidgets', 'PyQt5.QtQuick3D', 'PyQt5.QtQml', 'PyQt5.QtOpenGL'],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
+    excludes=['PyQt6.QtQuick', 'PyQt6.QtQuickWidgets', 'PyQt6.QtQuick3D', 'PyQt6.QtQml', 'PyQt6.QtOpenGL',
+              'PyQt6.QtTest'],
     noarchive=False,
 )
+# Qt and Windows libraries a widgets-only app does not use.  Matched as
+# substrings of the bundled file name, so keep entries specific.  The Visual
+# C++ runtime (vcruntime, msvcp, concrt) must never be listed: the exe would
+# then only start where that runtime happens to be installed.  The Universal
+# CRT (ucrtbase, api-ms-win-*) is part of Windows 10 and later.
 exclude_bin = ["QtWebEngineProcess.exe",
                "Quick.dll",
                "QuickWidgets.dll",
-               "Xml",
-               "Sql",
+               "Qt6Xml",
+               "Qt6Sql",
                "PositioningQuick",
-               "Positioning",
-               "Bluetooth",
-               "Network",
-               "Test",
-               "Nfc",
-               "WebChannel",
-               "WebSockets",
-               "RemoteObjects",
-               "PrintSupport",
-               "TextToSpeech",
+               "Qt6Positioning",
+               "Qt6Bluetooth",
+               "Qt6Network",
+               # these two import Qt6Network; PDF images and TUIO touch are unused
+               "Qt6Pdf",
+               "qpdf.dll",
+               "qtuiotouchplugin",
+               "Qt6Test",
+               "Qt6Nfc",
+               "Qt6WebChannel",
+               "Qt6WebSockets",
+               "Qt6RemoteObjects",
+               "Qt6PrintSupport",
+               "Qt6TextToSpeech",
                "QmlModels",
-               "Help",
+               "Qt6Help",
                "api-ms-win",
+               "ucrtbase.dll",
                "opengl32sw.dll",
-               "MSVCP140_1.dll",
-               "Qt5Qml.dll",
-               "Qt5WebEngineCore.dll",
+               "Qt6Qml",
+               "Qt6WebEngineCore.dll",
                "d3dcompiler_47.dll",
                "qsqlite.dll",
                "dbghelp.dll",
                "dbgcore.dll",
-               "VCRUNTIME",
-               "Bluetooth",
-               "MSVCP",
-               "ucrtbase.dll",
-               "Sensors",
+               "Qt6Sensors",
                "WebEngine",
-               "Location",
-               "GLES",
-               "Multimedia",
-               "libeay32.dll",
-               "libEGL",
-               "DBus",
+               "Qt6Location",
+               "Qt6Multimedia",
+               "Qt6DBus",
                "geoservices",
                "sensorgestures",
-               "libegl",
-               "libgles",
                "dsengine",
                "qtmedia",
                "wmfengine",
-               "qwebp",
-               "qtaudio"]
+               "qwebp"]
 
 exclude_data = ["qtwebengine", "translations", "icudtl"]
 
 
-def filter_bin(a):
-    ret = not (True in [x in a[0] for x in exclude_bin])
-    if not ret:
-        print("EXCL", a[0])
-    return ret
+def filter_bin(entry):
+    keep = not any(x in entry[0] for x in exclude_bin)
+    if not keep:
+        print("EXCL", entry[0])
+    return keep
 
 
-def filter_data(a):
-    ret = not (True in [x in a[0] for x in exclude_data])
-    if not ret:
-        print("EXCL", a[0])
-    return ret
+def filter_data(entry):
+    keep = not any(x in entry[0] for x in exclude_data)
+    if not keep:
+        print("EXCL", entry[0])
+    return keep
 
 
-a.binaries = TOC(list(filter(filter_bin, a.binaries)))
-a.datas = TOC(list(filter(filter_data, a.datas)))
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+a.binaries = list(filter(filter_bin, a.binaries))
+a.datas = list(filter(filter_data, a.datas))
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
-    a.zipfiles,
     a.datas,
     [],
     name='Rhino Tester',
+    icon='image/vpforceicon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    excludes=['PyQt5.QtQuick', 'PyQt5.QtQuickWidgets', 'PyQt5.QtQuick3D', 'PyQt5.QtQml', 'PyQt5.QtOpenGL'],
-    console=True,
+    # No console window: output and errors go to View > Log instead
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-)
-coll = COLLECT(
-    exe,
-
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='Rhino Test App',
 )

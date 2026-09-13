@@ -1,0 +1,9 @@
+__pycache__/
+.venv/
+venv/
+build/
+dist/
+.idea/
+bak/
+# separately distributed, expiring beta builds - never commit
+dll/dinput_ffb.dll

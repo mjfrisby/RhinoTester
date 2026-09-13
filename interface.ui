@@ -6,21 +6,9 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>645</width>
-    <height>688</height>
+    <width>1200</width>
+    <height>720</height>
    </rect>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>502</width>
-    <height>561</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>1000</width>
-    <height>1000</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Rhino Tester</string>
@@ -95,9 +83,9 @@
      </layout>
     </item>
     <item row="2" column="0">
-     <widget class="QCheckBox" name="cb_Periodic">
+     <widget class="QLabel" name="label_Periodic">
       <property name="text">
-       <string>Periodic</string>
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Periodic&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -113,26 +101,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDial" name="dialPeriodic">
-          <property name="maximumSize">
-           <size>
-            <width>31</width>
-            <height>31</height>
-           </size>
-          </property>
-          <property name="maximum">
-           <number>359</number>
-          </property>
-          <property name="value">
-           <number>5</number>
-          </property>
-          <property name="sliderPosition">
-           <number>5</number>
-          </property>
-          <property name="wrapping">
-           <bool>true</bool>
-          </property>
-         </widget>
+         <widget class="DirectionDial" name="dialPeriodic"/>
         </item>
        </layout>
       </item>
@@ -142,7 +111,7 @@
          <widget class="QLabel" name="label_5">
           <property name="minimumSize">
            <size>
-            <width>78</width>
+            <width>110</width>
             <height>0</height>
            </size>
           </property>
@@ -159,6 +128,12 @@
         </item>
         <item>
          <widget class="QLineEdit" name="txt_PeriodicFrequency">
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="maximumSize">
            <size>
             <width>50</width>
@@ -180,17 +155,42 @@
            </size>
           </property>
           <property name="text">
-           <string>Intensity (0.0-1.0):</string>
+           <string>Intensity:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="txt_PeriodicIntensity">
-          <property name="maximumSize">
+         <widget class="QSlider" name="slider_PeriodicIntensity">
+          <property name="minimumSize">
            <size>
-            <width>50</width>
-            <height>16777215</height>
+            <width>150</width>
+            <height>0</height>
            </size>
+          </property>
+          <property name="maximum">
+           <number>1000</number>
+          </property>
+          <property name="singleStep">
+           <number>10</number>
+          </property>
+          <property name="pageStep">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="spin_PeriodicIntensity">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
           </property>
          </widget>
         </item>
@@ -202,7 +202,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="txt_Duration"/>
+         <widget class="QLineEdit" name="txt_Duration">
+          <property name="minimumSize">
+           <size>
+            <width>60</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer_6">
@@ -294,7 +301,7 @@
        <widget class="QLabel" name="label_2">
         <property name="maximumSize">
          <size>
-          <width>61</width>
+          <width>100</width>
           <height>16777215</height>
          </size>
         </property>
@@ -354,9 +361,9 @@
      </layout>
     </item>
     <item row="6" column="0">
-     <widget class="QCheckBox" name="cb_Constant">
+     <widget class="QLabel" name="label_Constant">
       <property name="text">
-       <string>Constant</string>
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;Constant&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
      </widget>
     </item>
@@ -372,26 +379,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDial" name="dialConstant">
-          <property name="maximumSize">
-           <size>
-            <width>31</width>
-            <height>31</height>
-           </size>
-          </property>
-          <property name="maximum">
-           <number>359</number>
-          </property>
-          <property name="value">
-           <number>5</number>
-          </property>
-          <property name="sliderPosition">
-           <number>5</number>
-          </property>
-          <property name="wrapping">
-           <bool>true</bool>
-          </property>
-         </widget>
+         <widget class="DirectionDial" name="dialConstant"/>
         </item>
        </layout>
       </item>
@@ -406,17 +394,42 @@
            </size>
           </property>
           <property name="text">
-           <string>Intensity (0.0-1.0):</string>
+           <string>Intensity:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="txt_ConstantIntensity">
-          <property name="maximumSize">
+         <widget class="QSlider" name="slider_ConstantIntensity">
+          <property name="minimumSize">
            <size>
-            <width>50</width>
-            <height>16777215</height>
+            <width>150</width>
+            <height>0</height>
            </size>
+          </property>
+          <property name="maximum">
+           <number>1000</number>
+          </property>
+          <property name="singleStep">
+           <number>10</number>
+          </property>
+          <property name="pageStep">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="spin_ConstantIntensity">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
           </property>
          </widget>
         </item>
@@ -460,54 +473,291 @@
       </property>
      </widget>
     </item>
-    <item row="9" column="0">
-     <widget class="QCheckBox" name="cb_Damper">
-      <property name="text">
-       <string>Damper</string>
-      </property>
-     </widget>
-    </item>
-    <item row="10" column="0" colspan="2">
-     <layout class="QHBoxLayout" name="horizontalLayout_13">
+    <item row="9" column="0" colspan="2">
+     <layout class="QVBoxLayout" name="verticalLayout_Singular">
       <item>
-       <widget class="QLabel" name="label_10">
-        <property name="minimumSize">
-         <size>
-          <width>101</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Intensity (0.0-1.0):</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_Damper">
+         <item>
+          <widget class="QCheckBox" name="cb_Damper">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Damper</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="slider_DamperIntensity">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1000</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="pageStep">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDoubleSpinBox" name="spin_DamperIntensity">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>0.010000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_Damper">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+       </layout>
       </item>
       <item>
-       <widget class="QLineEdit" name="txt_DamperIntensity">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_Inertia">
+         <item>
+          <widget class="QCheckBox" name="cb_Inertia">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Inertia</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="slider_InertiaIntensity">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1000</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="pageStep">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDoubleSpinBox" name="spin_InertiaIntensity">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>0.010000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_Inertia">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+       </layout>
       </item>
       <item>
-       <spacer name="horizontalSpacer">
+       <layout class="QHBoxLayout" name="horizontalLayout_Friction">
+         <item>
+          <widget class="QCheckBox" name="cb_Friction">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Friction</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="slider_FrictionIntensity">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1000</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="pageStep">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDoubleSpinBox" name="spin_FrictionIntensity">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>0.010000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_Friction">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_Spring">
+         <item>
+          <widget class="QCheckBox" name="cb_Spring">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Spring</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="slider_SpringIntensity">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1000</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="pageStep">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDoubleSpinBox" name="spin_SpringIntensity">
+           <property name="decimals">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>0.010000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="cb_SpringOverride">
+           <property name="text">
+            <string>Override</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_Spring">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+       </layout>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_Singular">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Vertical</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
-          <height>20</height>
+          <width>20</width>
+          <height>0</height>
          </size>
         </property>
        </spacer>
       </item>
      </layout>
     </item>
-    <item row="10" column="2" rowspan="7" colspan="2">
+    <item row="9" column="2" colspan="2">
      <widget class="QFrame" name="crosshair_frame">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -529,167 +779,92 @@
       </property>
      </widget>
     </item>
-    <item row="11" column="0">
-     <widget class="QCheckBox" name="cb_Inertia">
-      <property name="text">
-       <string>Inertia</string>
-      </property>
-     </widget>
-    </item>
-    <item row="12" column="0" colspan="2">
-     <layout class="QHBoxLayout" name="horizontalLayout_10">
-      <item>
-       <widget class="QLabel" name="label_9">
-        <property name="minimumSize">
-         <size>
-          <width>101</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Intensity (0.0-1.0):</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="txt_InertiaIntensity">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="13" column="0">
-     <widget class="QCheckBox" name="cb_Friction">
-      <property name="text">
-       <string>Friction</string>
-      </property>
-     </widget>
-    </item>
-    <item row="14" column="0" colspan="2">
-     <layout class="QHBoxLayout" name="horizontalLayout_9">
-      <item>
-       <widget class="QLabel" name="label_8">
-        <property name="minimumSize">
-         <size>
-          <width>101</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Intensity (0.0-1.0):</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="txt_FrictionIntensity">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="15" column="0">
-     <widget class="QCheckBox" name="cb_Spring">
-      <property name="text">
-       <string>Spring</string>
-      </property>
-     </widget>
-    </item>
-    <item row="16" column="0" colspan="2">
-     <layout class="QHBoxLayout" name="horizontalLayout_14">
-      <item>
-       <widget class="QLabel" name="label_13">
-        <property name="minimumSize">
-         <size>
-          <width>101</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Intensity (0.0-1.0):</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="txt_SpringIntensity">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cb_SpringOverride">
-        <property name="text">
-         <string>Override</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="17" column="1">
+    <item row="10" column="1">
      <widget class="QPushButton" name="button_Start">
       <property name="text">
-       <string>Start New Effect(s)</string>
+       <string>Start Checked and Queued</string>
       </property>
      </widget>
     </item>
-    <item row="17" column="3">
+    <item row="10" column="3">
      <widget class="QPushButton" name="button_Stop">
       <property name="text">
        <string>Stop All Effects</string>
       </property>
      </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="button_QueuePeriodic">
+      <property name="text">
+       <string>Add Periodic to Queue</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="3">
+     <widget class="QPushButton" name="button_QueueConstant">
+      <property name="text">
+       <string>Add Constant to Queue</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="4" rowspan="11">
+     <layout class="QVBoxLayout" name="verticalLayout_Side">
+      <item>
+       <widget class="QLabel" name="label_Queue">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700; text-decoration: underline;&quot;&gt;Queued Effects&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="list_Queue">
+        <property name="minimumSize">
+         <size>
+          <width>320</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::ExtendedSelection</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_QueueButtons">
+        <item>
+         <widget class="QPushButton" name="button_QueueRemove">
+          <property name="text">
+           <string>Remove Selected</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="button_QueueClear">
+          <property name="text">
+           <string>Clear Queue</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_Active">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700; text-decoration: underline;&quot;&gt;Active Effects&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="list_Active">
+        <property name="minimumSize">
+         <size>
+          <width>320</width>
+          <height>0</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -698,13 +873,20 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>645</width>
+     <width>1200</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DirectionDial</class>
+   <extends>QWidget</extends>
+   <header>widgets.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
  <buttongroups>

@@ -35,7 +35,7 @@ To change an effect, select it in Queued Effects. Its settings load into the con
 
 ### Direction
 
-The direction dial shows the value sent to the device: 0° forward (F), 90° right (R), 180° back (B) and 270° left (L). Click or drag to point it, and hold Shift to snap to 15°. The mouse wheel and arrow keys change it by 1°, Page Up and Page Down by 15°, and Home returns it to 0°.
+The direction dial shows the value sent to the device, drawn where it pushes the stick: 0° back (B), 90° left (L), 180° forward (F) and 270° right (R). Click or drag to point it, and hold Shift to snap to 15°. The mouse wheel and arrow keys change it by 1°, Page Up and Page Down by 15°, and Home returns it to 0°.
 
 ## Damper, inertia, friction and spring
 

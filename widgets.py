@@ -124,9 +124,9 @@ class CrosshairWidget(QWidget):
 
 
 class DirectionDial(QWidget):
-    """Compass-style direction picker: 0 degrees (forward) at the top,
-    increasing clockwise, in whole degrees 0-359.  On the stick 0 is forward,
-    90 right, 180 back and 270 left.
+    """Direction picker in the device's own degrees, 0-359, drawn where each
+    one pushes the stick: 0 at the bottom (back), 90 left, 180 at the top
+    (forward) and 270 right, increasing clockwise like the stock QDial.
 
     Click or drag to point it; Shift snaps to 15 degrees.  The mouse wheel
     and arrow keys step 1 degree, Page Up/Down step 15, and Home returns to 0.
@@ -136,7 +136,10 @@ class DirectionDial(QWidget):
 
     SNAP = 15
     SIZE = 72
+    #: Screen angles, clockwise from the top
     CARDINALS = ((0, "F"), (90, "R"), (180, "B"), (270, "L"))
+    #: Screen angle minus value: the device's 0 is at the bottom
+    SCREEN_OFFSET = 180
     ACCENT = QColor("#ab37c8")
 
     def __init__(self, parent=None):
@@ -147,7 +150,7 @@ class DirectionDial(QWidget):
         self.setFixedSize(self.SIZE, self.SIZE)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Forward (F) 0°, right (R) 90°, back (B) 180°, left (L) 270°.\n"
+        self.setToolTip("Forward (F) 180°, right (R) 270°, back (B) 0°, left (L) 90°.\n"
                         "Click or drag to set the direction (Shift snaps to 15°).\n"
                         "Wheel or arrow keys: 1°   Page Up/Down: 15°   Home: 0°")
 
@@ -175,7 +178,7 @@ class DirectionDial(QWidget):
         angle = math.degrees(math.atan2(dx, -dy)) % 360
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             angle = round(angle / self.SNAP) * self.SNAP
-        self.setValue(angle)
+        self.setValue(angle - self.SCREEN_OFFSET)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -266,10 +269,11 @@ class DirectionDial(QWidget):
 
         # The pointer starts clear of the readout and runs over the ticks to the rim
         painter.setPen(QPen(accent, 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        painter.drawLine(at(self._value, radius * 0.55), at(self._value, radius - 2))
+        pointer = self._value + self.SCREEN_OFFSET
+        painter.drawLine(at(pointer, radius * 0.55), at(pointer, radius - 2))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(accent)
-        painter.drawEllipse(at(self._value, radius - 7), 4.5, 4.5)
+        painter.drawEllipse(at(pointer, radius - 7), 4.5, 4.5)
 
         font = self.font()
         font.setPointSizeF(max(7.0, font.pointSizeF() * 0.8))

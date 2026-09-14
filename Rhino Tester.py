@@ -598,14 +598,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def _apply(spec):
         """Send a queued entry's settings to its effect, creating it on first use."""
         effect = effects[spec["name"]]
+        direction = spec["direction"]
         if spec["kind"] == "periodic":
             # effect_type is keyword-only in the current API: passed
             # positionally it lands in *args and is silently ignored
-            effect.periodic(spec["frequency"], spec["intensity"], spec["direction"],
+            effect.periodic(spec["frequency"], spec["intensity"], direction,
                             effect_type=spec["waveform"], phase=spec["phase"],
                             duration=spec["duration"])
         else:
-            effect.constant(spec["intensity"], spec["direction"])
+            effect.constant(spec["intensity"], direction)
         return effect
 
     def _restart(self, spec):

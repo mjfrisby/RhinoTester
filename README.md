@@ -43,7 +43,11 @@ The direction dial shows the value sent to the device, drawn where it pushes the
 
 ## Damper, inertia, friction and spring
 
-These are singular effects, so only one of each exists at a time. Tick the effect, set its intensity, and press Start Checked and Queued. Starting it again updates the existing effect.
+Each of these has its own box with a short description of what it does. Only one of each exists at a time, so starting one again updates it rather than adding a second.
+
+Press the box's own Start button to run that effect on its own, whatever its Include checkbox says. Include is for starting several at once: Start Checked and Queued runs every included effect along with the queue.
+
+Moving an intensity slider while the effect is playing sends the new value to the device straight away.
 
 Override applies to VPforce devices only. It starts a spring that external DirectInput commands cannot override.
 
@@ -59,11 +63,27 @@ The grid shows the stick's X and Y travel, with up on the grid as forward. The c
 
 The red crosshair follows the stick's actual position. Once a device is connected, the tester reads it about every 10 ms, so the crosshair moves as you move the stick or as an effect pushes it.
 
-The blue crosshair is the spring's center point. It only responds while a spring is running: click or drag anywhere on the grid to move the center, and the device pulls the stick toward it in real time. A force trim release moves it too. When the spring stops, the blue crosshair stays where you left it, and the next spring you start is centered there.
+The other crosshair is the spring's center point. It is blue and can be dragged while a spring is running, and grey when there is no spring to move. Click or drag anywhere on the grid to move the center, and the device pulls the stick toward it in real time. A force trim release moves it too. When the spring stops, the crosshair stays where you left it, and the next spring you start is centered there.
+
+### Device
+
+The box below the axis view reads the same input reports about 20 times a second:
+
+- **Position** is the stick's X and Y, the numbers behind the red crosshair.
+- **Center** is the spring center the device reports, and shows a dash when no spring is running.
+- **Centering error** is how far the stick sits from that center on each axis, as a percentage of full travel, so 0% is dead on the center.
+- **Buttons** and **Hats** list whatever is pressed.
+- **Force out** is the force the device reports it is applying. It only appears on VPforce devices; DirectInput devices do not report it.
 
 ## Active effects
 
 Every running effect is listed under Active effects with its own Stop button. Stop All Effects stops and frees everything.
+
+## Device menu
+
+Reset All Effects frees every effect the device is holding, including any the tester did not create, such as leftovers from a program that was killed. It asks first, because it also clears effects other software owns.
+
+The tester frees its own effects when it closes, so this is for clearing up after something else.
 
 ## View menu
 

@@ -1,5 +1,7 @@
+import atexit
 import ctypes
 import logging
+import math
 import os
 import sys
 import winreg
@@ -193,6 +195,35 @@ def _devpath(devinfo) -> str:
     return path.decode() if isinstance(path, bytes) else str(path)
 
 
+def device_state(input_data) -> dict:
+    """What the Device box shows.  Both backends report position, buttons and
+    hats; the Rhino also reports its force output and center point."""
+    x, y = input_data.axisXY()
+    mask = button_mask(input_data)
+    hats = getattr(input_data, "hats", 0)
+    state = {
+        "x": x,
+        "y": y,
+        "buttons": [i + 1 for i in range(64) if mask & (1 << i)],
+        # 4 hats of 4 bits, 0xF when centered
+        "hats": [(i + 1, (hats >> (i * 4)) & 0xF) for i in range(4) if (hats >> (i * 4)) & 0xF != 0xF],
+        "force": None,
+        "center": None,
+    }
+    if hasattr(input_data, "ForceX"):
+        state["force"] = (input_data.ForceX, input_data.ForceY)
+    center = getattr(input_data, "CP_XY", None)
+    if center is not None:
+        try:
+            center_x, center_y = center()
+        except Exception:
+            center_x = center_y = None
+        # A device with no spring running reports no center, per axis
+        if center_x is not None and center_y is not None:
+            state["center"] = (center_x, center_y)
+    return state
+
+
 def button_mask(input_data) -> int:
     """The pressed buttons as one bit per button, which both backends report in
     ``buttons``.  Hats are reported separately and are left out of this."""
@@ -202,11 +233,13 @@ def button_mask(input_data) -> int:
 class DeviceMonitorThread(QThread):
     positionChanged = pyqtSignal(float, float)
     buttonsChanged = pyqtSignal(int)
+    stateChanged = pyqtSignal(dict)
 
     def run(self):
         # Stopped by requestInterruption(), never terminate(): a thread killed
         # mid-call can leave a lock held and hang the process on exit
         mask = None  # None until the first report, so that one is always sent
+        polls = 0
         while not self.isInterruptionRequested():
             if dev is not None:
                 # a freshly opened device has no input snapshot until its
@@ -219,6 +252,10 @@ class DeviceMonitorThread(QThread):
                     if now != mask:
                         mask = now
                         self.buttonsChanged.emit(mask)
+                    # The Device box is read, not acted on: 20 Hz is plenty
+                    polls += 1
+                    if polls % 5 == 0:
+                        self.stateChanged.emit(device_state(input_data))
             self.msleep(10)  # Adjust the interval as needed
 
 
@@ -256,16 +293,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.init_ui()
 
         self.connected = False
+        self._cleaned_up = False
         self.effect_index = 0
 
         # Create the device monitor thread
         self.device_thread = DeviceMonitorThread()
         self.device_thread.positionChanged.connect(self.update_reference_position)
         self.device_thread.buttonsChanged.connect(self.handle_buttons)
+        self.device_thread.stateChanged.connect(self.show_device_state)
         self.spring_x = FFBReport_SetCondition(parameterBlockOffset=0)
         self.spring_y = FFBReport_SetCondition(parameterBlockOffset=1)
 
-        self._build_view_menu()
+        self._build_menus()
         # Once the event loop runs, so the window is up before any connection error dialog
         QTimer.singleShot(0, self._auto_connect)
 
@@ -290,6 +329,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._bind_intensity(self.slider_InertiaIntensity, self.spin_InertiaIntensity, 0.85)
         self._bind_intensity(self.slider_FrictionIntensity, self.spin_FrictionIntensity, 0.5)
         self._bind_intensity(self.slider_SpringIntensity, self.spin_SpringIntensity, 0.5)
+
+        self._singular = {
+            "damper": (self.cb_Damper, self.spin_DamperIntensity),
+            "inertia": (self.cb_Inertia, self.spin_InertiaIntensity),
+            "friction": (self.cb_Friction, self.spin_FrictionIntensity),
+            "spring": (self.cb_Spring, self.spin_SpringIntensity),
+        }
+        for singular in self._singular:
+            self._singular[singular][1].valueChanged.connect(
+                lambda _value, name=singular: self._update_singular(name))
+            getattr(self, f"button_Start{singular.capitalize()}").clicked.connect(
+                lambda _checked=False, name=singular: self.start_singular(name))
 
         self.button_Connect.clicked.connect(self.connect_device)
         self.button_Start.clicked.connect(self.start_effects)
@@ -351,7 +402,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         spin.valueChanged.connect(lambda v: slider.setValue(round(v * INTENSITY_STEPS)))
         spin.setValue(value)
 
-    def _build_view_menu(self):
+    def _build_menus(self):
+        device_menu = self.menubar.addMenu("&Device")
+        self.reset_action = QAction("&Reset All Effects", self)
+        self.reset_action.setToolTip("Free every effect on the device, including any this tester did not create")
+        self.reset_action.triggered.connect(self.reset_device_effects)
+        device_menu.addAction(self.reset_action)
+
         view_menu = self.menubar.addMenu("&View")
         self.log_action = QAction("&Log…", self)
         self.log_action.setShortcut("Ctrl+L")
@@ -376,6 +433,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.theme_actions[theme_id].setChecked(True)
         apply_theme(QApplication.instance(), THEME_DARK_FLAG[theme_id])
         self.settings.set("themeId", theme_id)
+
+    def reset_device_effects(self):
+        """Free every effect the device holds, the tester's and anything left
+        by other software or an earlier run."""
+        if not self.connected or dev is None:
+            QMessageBox.warning(self, "Error", "Please connect to a device")
+            return
+        answer = QMessageBox.question(
+            self, "Reset All Effects",
+            "Free every effect on the device, including any this tester did not create?")
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.stop_effects()
+        dev.reset_effects()
+        logging.info("Reset every effect on the device")
 
     def show_log(self):
         if self.log_window is None:
@@ -404,6 +476,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._device_x, self._device_y = x, y
         self.crosshair_widget.setReferencePosition(x, y)
 
+    def show_device_state(self, state):
+        """The Device box under the axis view, from the latest input report."""
+        self.lab_DevPosition.setText(f"X {state['x']:+.3f}   Y {state['y']:+.3f}")
+        center = state["center"]
+        self.lab_DevCenter.setText(f"X {center[0]:+.3f}   Y {center[1]:+.3f}" if center else "—")
+        if center:
+            # Per axis, as a share of the 2.0 of full travel: 0% sits on the center
+            error_x = min(1.0, abs(state["x"] - center[0]) / 2.0)
+            error_y = min(1.0, abs(state["y"] - center[1]) / 2.0)
+            self.lab_DevCenterError.setText(f"X {error_x * 100:04.1f}%   Y {error_y * 100:04.1f}%")
+        else:
+            self.lab_DevCenterError.setText("—")
+        buttons = state["buttons"]
+        self.lab_DevButtons.setText(", ".join(str(b) for b in buttons) if buttons else "none")
+        hats = state["hats"]
+        self.lab_DevHats.setText(", ".join(f"{i}: {p}" for i, p in hats) if hats else "centered")
+        force = state["force"]
+        # Only VPforce devices report their force output
+        self.label_lab_DevForce.setVisible(force is not None)
+        self.lab_DevForce.setVisible(force is not None)
+        if force:
+            self.lab_DevForce.setText(f"X {force[0]:+d}   Y {force[1]:+d}")
+
     def handle_buttons(self, buttons):
         """Buttons pressed after the spring started act as a force trim release:
         the spring stops while one is held, leaving the stick free, and starts
@@ -431,19 +526,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                          self._device_x, self._device_y)
 
     def cleanup(self):
-        # The monitor reads the device, so it stops before the device is shut down
-        self.device_thread.requestInterruption()
-        self.device_thread.wait()
+        """Free every effect and release the device.  Runs on close and on
+        quit, whichever comes first, and does nothing the second time."""
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+        # The monitor reads the device, so it stops before the device is shut
+        # down; a stuck thread must not cost us the effect cleanup below
+        try:
+            self.device_thread.requestInterruption()
+            self.device_thread.wait(2000)
+        except Exception:
+            logging.exception("Could not stop the device monitor")
         try:
             effects.clear()
         except Exception:
-            pass
+            logging.exception("Could not free the effects")
         try:
             if dev is not None:
                 dev.reset_effects()
                 dev.shutdown()
         except Exception:
-            pass
+            logging.exception("Could not reset the device")
+
+    def closeEvent(self, event):
+        self.cleanup()
+        super().closeEvent(event)
 
     def update_phase_value(self, value):
         self.lab_PeriodicPhase.setText(f"{value}")
@@ -643,6 +751,62 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # --- playing queued entries --------------------------------------------------
 
+    def _singular_label(self, name):
+        text = f"{name.capitalize()}, intensity {self._singular[name][1].value():.3f}"
+        if name == "spring" and self._spring_override:
+            text += ", override"
+        return text
+
+    def _apply_singular(self, name):
+        """Send a singular effect's intensity, creating the effect on first use."""
+        coeff = int(self._singular[name][1].value() * 4096)
+        getattr(effects[name], name)(coeff, coeff)
+
+    def _update_singular(self, name):
+        """An intensity change goes straight to the effect when it is playing."""
+        if not self._is_playing(name):
+            return
+        if name == "spring":
+            coeff = int(self._singular[name][1].value() * 4096)
+            self.spring_x.positiveCoefficient = self.spring_x.negativeCoefficient = coeff
+            self.spring_y.positiveCoefficient = self.spring_y.negativeCoefficient = coeff
+            # While a trim release is held the spring is stopped; re-engaging sends these
+            if self.spring is not None and not self.trim_release:
+                self.spring.setCondition(self.spring_x)
+                self.spring.setCondition(self.spring_y)
+        else:
+            self._apply_singular(name)
+        self._active_rows[name][1].setText(self._singular_label(name))
+
+    def start_singular(self, name):
+        """Start one singular effect now, whatever its checkbox says."""
+        if not self.connected:
+            QMessageBox.warning(self, "Error", "Please connect to a device")
+            return
+        if name == "spring":
+            self._start_spring()
+            return
+        self._apply_singular(name)
+        effects[name].start()
+        self._show_active(name, self._singular_label(name))
+
+    def _start_spring(self):
+        intensity = self._singular["spring"][1].value()
+        override = self.cb_SpringOverride.isChecked()
+        coeff = int(intensity * 4096)
+        self.spring = effects["spring"].spring()
+        self.spring_x.positiveCoefficient = self.spring_x.negativeCoefficient = coeff
+        self.spring_y.positiveCoefficient = self.spring_y.negativeCoefficient = coeff
+        self.spring.setCondition(self.spring_x)
+        self.spring.setCondition(self.spring_y)
+        self.spring.start(override=override)
+        # Whatever is held now is the resting state, not a trim release
+        self._spring_override = override
+        self._trim_baseline = self._buttons
+        self.trim_release = False
+        self.crosshair_widget.setEnabled(True)
+        self._show_active("spring", self._singular_label("spring"))
+
     def _is_playing(self, name):
         return name in self._active_rows and name not in self._finished
 
@@ -743,32 +907,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if not self._is_playing(spec["name"]):
                 self._restart(spec)
 
-        for name, checkbox, spin in (
-                ("damper", self.cb_Damper, self.spin_DamperIntensity),
-                ("inertia", self.cb_Inertia, self.spin_InertiaIntensity),
-                ("friction", self.cb_Friction, self.spin_FrictionIntensity)):
-            if checkbox.isChecked():
-                coeff = int(spin.value() * 4096)
-                getattr(effects[name], name)(coeff, coeff).start()
-                self._show_active(name, f"{name.capitalize()}, intensity {spin.value():.3f}")
-
-        if self.cb_Spring.isChecked():
-            intensity = self.spin_SpringIntensity.value()
-            override = self.cb_SpringOverride.isChecked()
-            s_coeff = int(intensity * 4096)
-            self.spring = effects["spring"].spring()
-            self.spring_x.positiveCoefficient = self.spring_x.negativeCoefficient = s_coeff
-            self.spring_y.positiveCoefficient = self.spring_y.negativeCoefficient = s_coeff
-            self.spring.setCondition(self.spring_x)
-            self.spring.setCondition(self.spring_y)
-            self.spring.start(override=override)
-            # Whatever is held now is the resting state, not a trim release
-            self._spring_override = override
-            self._trim_baseline = self._buttons
-            self.trim_release = False
-            self.crosshair_widget.setEnabled(True)
-            self._show_active("spring", f"Spring, intensity {intensity:.3f}"
-                                        + (", override" if override else ""))
+        for name in ("damper", "inertia", "friction", "spring"):
+            if self._singular[name][0].isChecked():
+                self.start_singular(name)
 
 
 if __name__ == '__main__':
@@ -793,4 +934,6 @@ if __name__ == '__main__':
     main_window = MainWindow(settings, theme, log_handler)
     main_window.show()
     app.aboutToQuit.connect(main_window.cleanup)
+    # Last line of defense for an exit that skips Qt's own shutdown
+    atexit.register(main_window.cleanup)
     sys.exit(app.exec())

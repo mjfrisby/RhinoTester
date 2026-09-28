@@ -59,10 +59,7 @@ class CrosshairWidget(QWidget):
         painter.drawLine(0, int(ref_y_pos), self.width(), int(ref_y_pos))
 
         # Draw the movable crosshairs
-        if self.movable:
-            crosshair_color = QColor(90, 150, 255) if dark else QColor(0, 0, 205)
-        else:
-            crosshair_color = QColor(110, 110, 110) if dark else self.disabled_color
+        crosshair_color = self.crosshairColor()
 
         painter.setPen(QPen(crosshair_color, 2))
         painter.drawLine(self.center.x(), 0, self.center.x(), self.height())
@@ -100,6 +97,14 @@ class CrosshairWidget(QWidget):
             int((self.y_pos - self.min_val) / (self.max_val - self.min_val) * self.height())
         )
         self.update()
+
+    def crosshairColor(self) -> QColor:
+        """Blue while the crosshair can be dragged, grey when it cannot: with
+        no spring running there is no center point to move."""
+        dark = self.palette().color(QPalette.ColorRole.Window).lightness() < 128
+        if self.movable and self.isEnabled():
+            return QColor(90, 150, 255) if dark else QColor(0, 0, 205)
+        return QColor(110, 110, 110) if dark else QColor(150, 150, 150)
 
     def setMovable(self, movable):
         self.movable = movable
@@ -146,7 +151,7 @@ class DirectionDial(QWidget):
     valueChanged = pyqtSignal(int)
 
     SNAP = 15
-    SIZE = 72
+    SIZE = 60
     #: Screen angles, clockwise from the top
     CARDINALS = ((0, "F"), (90, "R"), (180, "B"), (270, "L"))
     #: Screen angle minus value: the device's 0 is at the bottom
@@ -270,24 +275,24 @@ class DirectionDial(QWidget):
             painter.drawLine(at(angle, radius - 4), at(angle, radius - 1))
 
         letter_font = self.font()
-        letter_font.setPointSizeF(max(6.0, letter_font.pointSizeF() * 0.65))
+        letter_font.setPointSizeF(max(5.5, letter_font.pointSizeF() * 0.6))
         letter_font.setBold(True)
         painter.setFont(letter_font)
         painter.setPen(tick)
         for angle, letter in self.CARDINALS:
-            spot = at(angle, radius - 8)
-            painter.drawText(QRectF(spot.x() - 7, spot.y() - 7, 14, 14), Qt.AlignmentFlag.AlignCenter, letter)
+            spot = at(angle, radius - 7)
+            painter.drawText(QRectF(spot.x() - 6, spot.y() - 6, 12, 12), Qt.AlignmentFlag.AlignCenter, letter)
 
         # The pointer starts clear of the readout and runs over the ticks to the rim
         painter.setPen(QPen(accent, 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
         pointer = self._value + self.SCREEN_OFFSET
-        painter.drawLine(at(pointer, radius * 0.55), at(pointer, radius - 2))
+        painter.drawLine(at(pointer, radius * 0.5), at(pointer, radius - 2))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(accent)
         painter.drawEllipse(at(pointer, radius - 7), 4.5, 4.5)
 
         font = self.font()
-        font.setPointSizeF(max(7.0, font.pointSizeF() * 0.8))
+        font.setPointSizeF(max(6.5, font.pointSizeF() * 0.72))
         painter.setFont(font)
         painter.setPen(text_color)
         painter.drawText(QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2),

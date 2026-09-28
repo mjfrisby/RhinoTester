@@ -244,7 +244,11 @@ class DeviceMonitorThread(QThread):
             if dev is not None:
                 # a freshly opened device has no input snapshot until its
                 # first report arrives; None until then
-                input_data = dev.get_input()
+                try:
+                    input_data = dev.get_input()
+                except Exception:
+                    # the device went away between the check and the read
+                    input_data = None
                 if input_data is not None:
                     x, y = input_data.axisXY()
                     self.positionChanged.emit(x, y)
@@ -307,6 +311,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self._build_menus()
         # Once the event loop runs, so the window is up before any connection error dialog
         QTimer.singleShot(0, self._auto_connect)
+        QTimer.singleShot(0, self._fit_to_contents)
 
     def init_ui(self):
         self.label_Connected.setStyleSheet("color: red;")
@@ -401,6 +406,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         slider.valueChanged.connect(lambda v: spin.setValue(v / INTENSITY_STEPS))
         spin.valueChanged.connect(lambda v: slider.setValue(round(v * INTENSITY_STEPS)))
         spin.setValue(value)
+
+    def _fit_to_contents(self):
+        """Open at the smallest size everything fits in, rather than whatever
+        size the Designer file happens to carry."""
+        layout = self.centralWidget().layout()
+        if layout is not None:
+            layout.activate()
+        self.resize(self.minimumSizeHint())
 
     def _build_menus(self):
         device_menu = self.menubar.addMenu("&Device")
@@ -564,6 +577,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self, "No Device Selected",
                 "No device selected. Please select a device from the list.")
             return
+        self._release_device()
         path = _devpath(devinfo)
         try:
             if path.startswith(DINPUT_PREFIX):
@@ -590,6 +604,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Start the device monitor thread
         if not self.device_thread.isRunning():
             self.device_thread.start()
+
+    def _release_device(self):
+        """Free what is playing and let go of the device we are leaving, or it
+        keeps those effects with nothing driving them."""
+        global dev
+        if dev is None:
+            return
+        leaving, dev = dev, None  # the monitor thread idles while dev is None
+        self.connected = False
+        try:
+            self.stop_effects()
+        except Exception:
+            logging.exception("Could not free the effects on the previous device")
+        try:
+            leaving.reset_effects()
+            leaving.shutdown()
+        except Exception:
+            logging.exception("Could not release the previous device")
 
     def handle_crosshair_movement(self, x, y):
         # Handle the updated position of the moveable crosshairs

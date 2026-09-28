@@ -193,12 +193,20 @@ def _devpath(devinfo) -> str:
     return path.decode() if isinstance(path, bytes) else str(path)
 
 
+def button_mask(input_data) -> int:
+    """The pressed buttons as one bit per button, which both backends report in
+    ``buttons``.  Hats are reported separately and are left out of this."""
+    return getattr(input_data, "buttons", 0)
+
+
 class DeviceMonitorThread(QThread):
     positionChanged = pyqtSignal(float, float)
+    buttonsChanged = pyqtSignal(int)
 
     def run(self):
         # Stopped by requestInterruption(), never terminate(): a thread killed
         # mid-call can leave a lock held and hang the process on exit
+        mask = None  # None until the first report, so that one is always sent
         while not self.isInterruptionRequested():
             if dev is not None:
                 # a freshly opened device has no input snapshot until its
@@ -207,6 +215,10 @@ class DeviceMonitorThread(QThread):
                 if input_data is not None:
                     x, y = input_data.axisXY()
                     self.positionChanged.emit(x, y)
+                    now = button_mask(input_data)
+                    if now != mask:
+                        mask = now
+                        self.buttonsChanged.emit(mask)
             self.msleep(10)  # Adjust the interval as needed
 
 
@@ -233,6 +245,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         #: Set while an entry is loaded into the controls, so loading is not an edit.
         self._loading = False
         self.spring = None
+        #: True while a trim release button is held, with the spring stopped
+        self.trim_release = False
+        #: Buttons the device reports now, and those already held when the spring started
+        self._buttons = 0
+        self._trim_baseline = 0
+        #: The spring restarts the way it was started
+        self._spring_override = False
         self.setupUi(self)
         self.init_ui()
 
@@ -242,6 +261,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Create the device monitor thread
         self.device_thread = DeviceMonitorThread()
         self.device_thread.positionChanged.connect(self.update_reference_position)
+        self.device_thread.buttonsChanged.connect(self.handle_buttons)
         self.spring_x = FFBReport_SetCondition(parameterBlockOffset=0)
         self.spring_y = FFBReport_SetCondition(parameterBlockOffset=1)
 
@@ -381,7 +401,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.connect_device()
 
     def update_reference_position(self, x, y):
+        self._device_x, self._device_y = x, y
         self.crosshair_widget.setReferencePosition(x, y)
+
+    def handle_buttons(self, buttons):
+        """Buttons pressed after the spring started act as a force trim release:
+        the spring stops while one is held, leaving the stick free, and starts
+        again centered where the stick is when it is let go.
+
+        Buttons already held when the spring started are ignored, since a grip's
+        multi-position lever reports its current position as a standing press.
+        """
+        self._buttons = buttons
+        if self.spring is None:
+            self.trim_release = False
+            return
+        pressed = bool(buttons & ~self._trim_baseline)
+        if pressed == self.trim_release:
+            return
+        self.trim_release = pressed
+        if pressed:
+            logging.info("Force trim release pressed: spring stopped")
+            # destroy_after=0: a long hold must not deallocate the effect
+            self.spring.stop(destroy_after=0)
+        else:
+            self._set_spring_center(self._device_x, self._device_y)
+            self.spring.start(override=self._spring_override)
+            logging.info("Force trim release let go: spring centered at (%.3f, %.3f)",
+                         self._device_x, self._device_y)
 
     def cleanup(self):
         # The monitor reads the device, so it stops before the device is shut down
@@ -443,12 +490,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # no console I/O here: this runs per mouse-move event, and a slow
         # print backlogs the event queue so the spring updates lag the drag
         logging.debug(f"New crosshair position: ({x}, {y})")
+        self._set_spring_center(x, y)
+
+    def _set_spring_center(self, x, y):
+        """Move the running spring's center, and the blue crosshair with it."""
         self.cpOx = int(x * 4096)
         self.cpOy = int(y * 4096)
         self.spring_x.cpOffset = self.cpOx
         self.spring_y.cpOffset = self.cpOy
         self.spring.setCondition(self.spring_x)
         self.spring.setCondition(self.spring_y)
+        self.crosshair_widget.setCenterPosition(x, y)
 
     # --- additive effect queue ------------------------------------------------
 
@@ -544,10 +596,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def _show_editing(self):
         spec = self._editing
         for kind, label in (("periodic", self.label_Periodic), ("constant", self.label_Constant)):
-            text = f"<b>{kind.capitalize()}</b>"
             if spec is not None and spec["kind"] == kind:
-                text += f"&nbsp;&nbsp;<span style='color:#ab37c8'>editing #{spec['index']}</span>"
-            label.setText(text)
+                label.setText(f"<span style='color:#ab37c8'>Editing queued effect #{spec['index']}</span>")
+            else:
+                label.setText("")
 
     def _load_spec(self, spec):
         self._loading = True
@@ -710,6 +762,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.spring.setCondition(self.spring_x)
             self.spring.setCondition(self.spring_y)
             self.spring.start(override=override)
+            # Whatever is held now is the resting state, not a trim release
+            self._spring_override = override
+            self._trim_baseline = self._buttons
+            self.trim_release = False
             self.crosshair_widget.setEnabled(True)
             self._show_active("spring", f"Spring, intensity {intensity:.3f}"
                                         + (", override" if override else ""))

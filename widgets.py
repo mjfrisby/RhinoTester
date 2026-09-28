@@ -105,6 +105,17 @@ class CrosshairWidget(QWidget):
         self.movable = movable
         self.update()
 
+    def setCenterPosition(self, x, y):
+        """Move the movable crosshair without reporting a change: the caller is
+        already sending the new center to the device."""
+        self.x_pos = max(min(x, self.max_val), self.min_val)
+        self.y_pos = max(min(y, self.max_val), self.min_val)
+        self.center = QPoint(
+            int((self.x_pos - self.min_val) / (self.max_val - self.min_val) * self.width()),
+            int((self.y_pos - self.min_val) / (self.max_val - self.min_val) * self.height())
+        )
+        self.update()
+
     def setReferencePosition(self, x, y):
         """
         Set the position of the reference crosshairs.
